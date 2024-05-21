@@ -167,3 +167,11 @@ cursor_top.txt
 
 # Datasets non-reviewed
 datasets/non-reviewed/
+
+# PostgreSQL data directory
+postgresql/
+
+# Airflow files
+logs/
+plugins/
+config/

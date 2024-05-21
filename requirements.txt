@@ -1,0 +1,19 @@
+# Required to run the project
+
+## Data manipulation
+pandas==2.1.4
+
+## Scraping tweets
+tweety-ns==1.1.5
+
+## IA algorithms
+scikit-learn==1.4.2
+
+## To get cities
+geotext==0.4.0
+
+## Lemmatization
+spacy-stanza==1.0.4
+
+## Airflow
+apache-airflow==2.9.1
