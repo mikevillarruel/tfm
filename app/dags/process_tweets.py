@@ -66,15 +66,16 @@ def ProcessTweets():
             with open(f"{dags_path}/cursor_top.txt", "w") as f:
                 f.write(all_tweets.cursor_top)
 
-            date = [tweet.date for tweet in all_tweets]
-            text = [str(tweet.text).replace("\n", " ") for tweet in all_tweets]
-            url = [tweet.url for tweet in all_tweets]
-            id = [int(tweet.id) for tweet in all_tweets]
-            location = [
-                GeoText(tweet.text).cities if GeoText(
-                    tweet.text).cities else ""
-                for tweet in all_tweets
-            ]
+            id, date, text, url, location = [], [], [], [], []
+
+            for tweet in all_tweets:
+                cities = GeoText(tweet.text).cities
+
+                id.append(int(tweet.id))
+                date.append(tweet.date)
+                text.append(str(tweet.text).replace("\n", " "))
+                url.append(tweet.url)
+                location.append(cities[0] if cities else "")
 
             data = pd.DataFrame(
                 data={
