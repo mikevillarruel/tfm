@@ -54,7 +54,7 @@ def ProcessTweets():
             cursor_top = None
 
         all_tweets = app.search(
-            keyword="@policiaecuador OR @fiscaliaecuador -from:@policiaecuador -from:@fiscaliaecuador lang:es",
+            keyword="@policiaecuador -from:@policiaecuador lang:es",
             filter_=filters.SearchFilters.Latest(),
             pages=1,
             wait_time=5,
@@ -70,12 +70,19 @@ def ProcessTweets():
 
             for tweet in all_tweets:
                 cities = GeoText(tweet.text).cities
+                if cities:
+                    location.append(cities)
+                else:
+                    place = tweet.place
+                    if place is not None:
+                        location.append([place.name])
+                    else:
+                        location.append([])
 
                 id.append(int(tweet.id))
                 date.append(tweet.date)
                 text.append(str(tweet.text).replace("\n", " "))
                 url.append(tweet.url)
-                location.append(cities[0] if cities else "")
 
             data = pd.DataFrame(
                 data={
@@ -87,6 +94,8 @@ def ProcessTweets():
                 }
             )
 
+            data.location = data.location.str.join(",")
+
             context["ti"].xcom_push(key="data", value=data)
 
     @task
@@ -94,10 +103,8 @@ def ProcessTweets():
         dags_path = "/opt/airflow/dags"
         data = context["ti"].xcom_pull(key="data")
 
-        print(data)
-
         if data is not None:
-            with open(f"{dags_path}/model.pkl", "rb") as f:
+            with open(f"{dags_path}/model_decision_tree.pkl", "rb") as f:
                 model_loaded = pickle.load(f)
 
             prediction = model_loaded.predict(data["text"])
@@ -109,8 +116,6 @@ def ProcessTweets():
     def load_tweets(**context):
         data = context["ti"].xcom_pull(key="data")
 
-        print(data)
-
         if data is not None:
             postgres_hook = PostgresHook(postgres_conn_id="postgres_conn_tfm")
             conn = postgres_hook.get_conn()
@@ -119,7 +124,7 @@ def ProcessTweets():
                 cursor.execute(
                     f"""
                     INSERT INTO tweets ("ID", "DATE", "TEXT", "URL", "LABEL", "LOCATION")
-                    VALUES ({row['id']}, '{row['date']}', '{row['text']}', '{row['url']}', '{row['label']}', '{row['location']}')
+                    VALUES ({row['id']}, '{row['date']}', $$'{row['text']}'$$, '{row['url']}', '{row['label']}', '{row['location']}')
                     ON CONFLICT DO NOTHING;
                     """
                 )
